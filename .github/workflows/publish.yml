@@ -1,0 +1,46 @@
+name: OLX Radar publish
+
+# A coleta roda na sua máquina (IP residencial) e dispara este workflow com
+# o results.json como input. O Action só publica Issues: nunca toca a OLX.
+on:
+  workflow_dispatch:
+    inputs:
+      results:
+        description: "Conteúdo do results.json (JSON)"
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: olx-radar-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Write results.json
+        env:
+          RESULTS: ${{ inputs.results }}
+        run: printf '%s' "$RESULTS" > results.json
+
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python -m radar publish --results results.json

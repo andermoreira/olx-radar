@@ -1,0 +1,22 @@
+# Buscas do OLX Radar. Edite aqui sem mexer no código.
+#
+# Cada busca vira uma requisição à página pública de busca da OLX.
+# path: caminho da OLX depois do domínio, já com categoria + região.
+#   Pegue copiando a URL ao filtrar manualmente no site (sem o "?q=").
+# term: texto buscado (vai como ?q=). Vazio = sem termo.
+# include_keywords: título precisa conter ao menos uma destas (filtro).
+# exclude_keywords: título com qualquer uma é descartado (remove ruído:
+#   ponto comercial, ótica, loja, etc.).
+# min_price / max_price: faixa em reais; null para sem limite.
+
+defaults:
+  include_keywords: [repasse]
+  exclude_keywords: [ponto comercial, ótica, otica, loja, farmácia, farmacia, barbearia, salão, salao, consultório, consultorio]
+
+searches:
+  # Primeiro caso: repasse de imóveis à venda em São José dos Campos/SP.
+  - name: imoveis-repasse-sjc
+    path: imoveis/venda/estado-sp/vale-do-paraiba-e-litoral-norte/sao-jose-dos-campos
+    term: repasse
+    min_price: null
+    max_price: null
