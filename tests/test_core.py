@@ -1,7 +1,7 @@
 import json
 
+from radar import http, olx, scan
 from radar import issue_body as ib
-from radar import olx, scan
 from radar.ads import Ad, normalize_url, olx_listing_id
 
 NOW = "2026-01-01T00:00:00Z"
@@ -83,3 +83,54 @@ def test_extract_ads_reads_next_data():
 
 def test_extract_ads_empty_without_next_data():
     assert olx.extract_ads("<html>no data</html>", source="t", now=NOW) == []
+
+
+def test_extract_ads_reads_next_f_rsc_payload():
+    ad_payload = [{
+        "listId": 888,
+        "subject": "Repasse casa",
+        "url": "https://sp.olx.com.br/vale-do-paraiba/imoveis/repasse-casa-888",
+        "priceValue": "R$ 150.000",
+        "location": "São José dos Campos, Jardim das Indústrias",
+        "professionalAd": False,
+    }]
+    encoded_payload = json.dumps(ad_payload).replace('"', '\\"')
+    js_chunk = f'\\"ads\\":{encoded_payload}'
+    html = f'<html><script>self.__next_f.push([1,"1:foo\\n2:{js_chunk}"]);</script></html>'
+    ads = olx.extract_ads(html, source="t", now=NOW)
+    assert len(ads) == 1
+    assert ads[0].external_id == "888"
+    assert ads[0].title == "Repasse casa"
+    assert ads[0].price == 150000
+    assert ads[0].location == "São José dos Campos, Jardim das Indústrias"
+    assert ads[0].by_owner is True
+
+
+def test_fetch_text_blocked_status(monkeypatch):
+    class FakeResponse:
+        status_code = 403
+        content = b"blocked"
+        text = "blocked"
+
+    from curl_cffi import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+    import pytest
+    with pytest.raises(http.FetchError) as exc_info:
+        http.fetch_text("https://example.com")
+    assert exc_info.value.kind == "blocked"
+
+
+def test_fetch_text_success(monkeypatch):
+    class FakeResponse:
+        status_code = 200
+        content = b"<html>ok</html>"
+        text = "<html>ok</html>"
+
+    from curl_cffi import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **kw: FakeResponse())
+
+    result = http.fetch_text("https://example.com")
+    assert result == "<html>ok</html>"
+
+
