@@ -1,6 +1,6 @@
 import json
 
-from radar import http, olx, scan
+from radar import http, olx, scan, triage
 from radar import issue_body as ib
 from radar.ads import Ad, normalize_url, olx_listing_id
 
@@ -132,5 +132,63 @@ def test_fetch_text_success(monkeypatch):
 
     result = http.fetch_text("https://example.com")
     assert result == "<html>ok</html>"
+
+
+def test_triage_evaluate_comment():
+    assert triage.evaluate_comment("❤️") == "interested"
+    assert triage.evaluate_comment("/interessante") == "interested"
+    assert triage.evaluate_comment("interessante!") == "interested"
+    assert triage.evaluate_comment("📞") == "contacted"
+    assert triage.evaluate_comment("/contato") == "contacted"
+    assert triage.evaluate_comment("❌") == "discarded"
+    assert triage.evaluate_comment("/descartar") == "discarded"
+    assert triage.evaluate_comment("bom dia") is None
+
+
+def test_triage_apply_action():
+    initial = ["radar:new"]
+    labels, close = triage.apply_triage("interested", initial)
+    assert "radar:interested" in labels
+    assert "radar:new" not in labels
+    assert close is False
+
+    labels, close = triage.apply_triage("discarded", labels)
+    assert "radar:discarded" in labels
+    assert "radar:interested" not in labels
+    assert close is True
+
+
+def test_triage_process_comment():
+    class FakeClient:
+        def __init__(self):
+            self.labels = ["radar:new"]
+            self.closed = False
+
+        def get_issue(self, num):
+            return {
+                "number": num,
+                "labels": [{"name": lb} for lb in self.labels],
+                "state": "closed" if self.closed else "open",
+            }
+
+        def set_labels(self, num, labels):
+            self.labels = labels
+
+        def close_issue(self, num):
+            self.closed = True
+
+    client = FakeClient()
+    ok = triage.process_triage(client, 1, comment_body="❤️")
+    assert ok is True
+    assert "radar:interested" in client.labels
+    assert "radar:new" not in client.labels
+    assert client.closed is False
+
+    ok_disc = triage.process_triage(client, 1, comment_body="❌")
+    assert ok_disc is True
+    assert "radar:discarded" in client.labels
+    assert client.closed is True
+
+
 
 

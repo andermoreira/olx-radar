@@ -85,6 +85,25 @@ def cmd_init(args) -> int:
     return 0
 
 
+def cmd_triage(args) -> int:
+    client = _client()
+    if client is None:
+        return 1
+    from . import triage
+
+    success = triage.process_triage(
+        client,
+        args.issue,
+        comment_body=args.comment,
+        is_closed_event=args.closed,
+    )
+    if success:
+        print(f"Issue #{args.issue}: triagem aplicada")
+    else:
+        print(f"Issue #{args.issue}: nenhuma ação identificada")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="radar")
     sub = p.add_subparsers(dest="command", required=True)
@@ -100,6 +119,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     it = sub.add_parser("init", help="cria as labels gerenciadas")
     it.set_defaults(func=cmd_init)
+
+    tr = sub.add_parser("triage", help="aplica triagem em uma Issue por comentário ou fechamento")
+    tr.add_argument("--issue", type=int, required=True, help="número da Issue")
+    tr.add_argument("--comment", default=None, help="corpo do comentário")
+    tr.add_argument("--closed", action="store_true", help="se o evento foi de issue fechada")
+    tr.set_defaults(func=cmd_triage)
     return p
 
 

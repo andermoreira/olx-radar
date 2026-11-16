@@ -66,6 +66,9 @@ def render_block(ad: Ad, *, first_seen: str) -> str:
         f"- **Busca:** {s(ad.source)}",
         f"- **Visto pela primeira vez:** {first_seen}",
         f"- **Link:** {_url(ad.url)}",
+        "",
+        "---",
+        "*💡 Triagem rápida:* comente `❤️` (interessante), `📞` (contato) ou `❌` (descartar).",
         END,
     ]
     return "\n".join(lines)
