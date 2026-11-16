@@ -82,13 +82,6 @@ class GitHubClient:
             url = _next_link(headers.get("link", ""))
         return issues
 
-    def get_issue(self, number: int) -> dict[str, Any]:
-        _, data = self._request("GET", self._url(f"/issues/{int(number)}"))
-        return data
-
-    def close_issue(self, number: int) -> None:
-        self._request("PATCH", self._url(f"/issues/{int(number)}"), {"state": "closed"})
-
     def create_issue(self, title: str, body: str, labels: list[str]) -> int:
         payload = {"title": title, "body": body, "labels": labels}
         _, data = self._request("POST", self._url("/issues"), payload)
